@@ -9,7 +9,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 250px;
+  min-height: 500px;
   position: relative;
   box-shadow: 0 32px 70px rgba(3, 7, 18, 0.7);
   isolation: isolate;

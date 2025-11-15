@@ -902,19 +902,6 @@ function App() {
               </div>
             )}
             </section>
-
-            <section className="visualization-section">
-              <div className="section-header">
-                <h2 className="section-title">Spectrogram</h2>
-              </div>
-              {audioUrl ? (
-                <Spectrogram audioUrl={denoiseEnabled && denoisedAudioUrl ? denoisedAudioUrl : audioUrl} label="Frequency map" isDenoised={denoiseEnabled && denoisedAudioUrl} />
-              ) : (
-                <div className="placeholder-box">
-                  <p>Upload audio to view the spectrogram</p>
-                </div>
-              )}
-            </section>
           </div>
 
           {/* Right Column - New Layout */}
