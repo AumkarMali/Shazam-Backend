@@ -1,0 +1,141 @@
+.spectrogram-container {
+  width: 100%;
+  position: relative;
+  padding: 1.2rem;
+  border-radius: 24px;
+  background: radial-gradient(circle at 15% 20%, rgba(99, 102, 241, 0.25), rgba(23, 27, 48, 0.15) 55%),
+    radial-gradient(circle at 82% 80%, rgba(236, 72, 153, 0.18), rgba(12, 14, 28, 0.12) 60%),
+    linear-gradient(135deg, rgba(11, 17, 32, 0.95), rgba(4, 8, 20, 0.95));
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 25px 60px rgba(3, 7, 18, 0.65);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  isolation: isolate;
+}
+
+.spectrogram-container::after {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.spectrogram-container > * {
+  position: relative;
+  z-index: 1;
+}
+
+.spectrogram-label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(226, 232, 240, 0.7);
+  font-weight: 500;
+}
+
+.spectrogram-wrapper {
+  position: relative;
+  width: 100%;
+  background: rgba(6, 8, 18, 0.65);
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  padding: 1.6rem 2rem 2.2rem 2.8rem;
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.spectrogram-canvas {
+  width: 100%;
+  height: 420px;
+  display: block;
+  background: radial-gradient(circle at 10% 20%, #0e1529, #050912 70%);
+  border-radius: 12px;
+  filter: contrast(1.05) saturate(1.05);
+}
+
+.spectrogram-axes {
+  position: absolute;
+  inset: 1.6rem 2rem 2.2rem 2.8rem;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+.spectrogram-axes svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 12px;
+}
+
+.spectrogram-axes text {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.72rem;
+  fill: rgba(248, 250, 252, 0.78);
+}
+
+.spectrogram-axes line {
+  stroke: rgba(148, 163, 184, 0.28);
+  stroke-width: 1;
+  shape-rendering: geometricPrecision;
+}
+
+.spectrogram-frame {
+  fill: rgba(0, 0, 0, 0);
+  stroke: rgba(148, 163, 184, 0.35);
+  stroke-width: 1;
+}
+
+.spectrogram-placeholder {
+  width: 100%;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.45);
+  border-radius: 16px;
+  border: 1px dashed rgba(148, 163, 184, 0.3);
+  color: rgba(148, 163, 184, 0.7);
+  font-size: 0.85rem;
+}
+
+.spectrogram-placeholder p {
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .spectrogram-canvas {
+    height: 320px;
+  }
+
+  .spectrogram-wrapper {
+    padding: 1.4rem 1.7rem 2rem 2.6rem;
+  }
+
+  .spectrogram-axes {
+    inset: 1.4rem 1.7rem 2rem 2.6rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .spectrogram-canvas {
+    height: 240px;
+  }
+
+  .spectrogram-wrapper {
+    padding: 1.15rem 1.2rem 1.8rem 2.2rem;
+  }
+
+  .spectrogram-axes {
+    inset: 1.15rem 1.2rem 1.8rem 2.2rem;
+  }
+
+  .spectrogram-axes text {
+    font-size: 0.65rem;
+  }
+}
+
