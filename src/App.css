@@ -1,10 +1,12 @@
 .dashboard {
+  --sidebar-width: 400px;
   min-height: 100vh;
   display: flex;
+  align-items: flex-start;
   position: relative;
+  padding-left: var(--sidebar-width);
   background: radial-gradient(circle at 10% 20%, #0b1120 0%, #070b16 35%, #030712 100%);
   overflow-x: hidden;
-  overflow-y: auto;
   color: #e2e8f0;
 }
 
@@ -21,19 +23,21 @@
 }
 
 .sidebar {
-  width: 400px;
+  width: var(--sidebar-width);
   -webkit-backdrop-filter: blur(24px);
   backdrop-filter: blur(24px);
   background: rgba(15, 23, 42, 0.72);
   border-right: 1px solid rgba(148, 163, 184, 0.12);
   display: flex;
   flex-direction: column;
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
   height: 100vh;
   flex-shrink: 0;
-  overflow: hidden;
-  z-index: 2;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 10;
 }
 
 .sidebar-header {
@@ -503,8 +507,17 @@
 }
 
 @media (max-width: 960px) {
+  .dashboard {
+    padding-left: 0;
+  }
+
   .sidebar {
+    position: sticky;
+    top: 0;
+    left: auto;
     width: 220px;
+    height: auto;
+    overflow-y: visible;
   }
 
   .main-dashboard {
@@ -515,6 +528,7 @@
 @media (max-width: 768px) {
   .dashboard {
     flex-direction: column;
+    padding-left: 0;
   }
 
   .sidebar {
