@@ -12,6 +12,8 @@ function AudioVisualizer({ audioUrl }) {
   const analyserRef = useRef(null)
   const dataArrayRef = useRef(null)
   const sourceRef = useRef(null)
+  const activeAudioRef = useRef(null)
+  const isAnimatingRef = useRef(false)
 
   useEffect(() => {
     if (!audioUrl || !canvasRef.current) return
@@ -19,32 +21,9 @@ function AudioVisualizer({ audioUrl }) {
     const canvas = canvasRef.current
     const ctx = canvas.getContext('2d')
     
-    // Find any playing audio element in the sidebar
     const sidebar = containerRef.current?.closest('.sidebar-media-players')
-    const audioElements = sidebar?.querySelectorAll('audio') || []
-    
-    // Find the currently playing audio, or use the one matching our audioUrl
-    let audioElement = null
-    for (const audio of audioElements) {
-      if (!audio.paused) {
-        audioElement = audio
-        break
-      }
-    }
-    // If none playing, use the one matching our audioUrl (prefer denoised if available)
-    if (!audioElement && audioElements.length > 0) {
-      // Try to match by URL
-      const urlToMatch = audioUrl
-      audioElement = Array.from(audioElements).find(a => {
-        try {
-          return a.src && (a.src.includes(urlToMatch) || urlToMatch.includes(a.src.split('/').pop()))
-        } catch {
-          return false
-        }
-      }) || audioElements[audioElements.length - 1] // Use last one (denoised) if available
-    }
-    
-    if (!audioElement) return
+    const audioElements = Array.from(sidebar?.querySelectorAll('audio') || [])
+    if (audioElements.length === 0) return undefined
 
     // Set canvas size to match container (rectangular)
     const updateCanvasSize = () => {
@@ -68,68 +47,29 @@ function AudioVisualizer({ audioUrl }) {
       resizeObserver.observe(containerRef.current)
     }
 
-    // Setup Web Audio API
-    // Check if this audio element is already connected
-    if (connectedAudioElements.has(audioElement)) {
-      // Reuse existing connection
-      const existing = connectedAudioElements.get(audioElement)
-      audioContextRef.current = existing.context
-      analyserRef.current = existing.analyser
-      dataArrayRef.current = existing.dataArray
-    } else {
-      // Create new connection
+    const ensureConnection = (audioElement) => {
+      if (connectedAudioElements.has(audioElement)) {
+        return connectedAudioElements.get(audioElement)
+      }
       const audioContext = new (window.AudioContext || window.webkitAudioContext)()
       const analyser = audioContext.createAnalyser()
-      
+      analyser.fftSize = 256
+
       try {
         const source = audioContext.createMediaElementSource(audioElement)
-        // Connect source to analyser for visualization
         source.connect(analyser)
-        // CRITICAL: Connect source directly to destination to maintain audio playback
         source.connect(audioContext.destination)
         sourceRef.current = source
-        
-        // Store connection info
-        connectedAudioElements.set(audioElement, {
-          context: audioContext,
-          analyser: analyser,
-          source: source,
-          dataArray: null // Will be set below
-        })
-        
-        audioContextRef.current = audioContext
-        analyserRef.current = analyser
+
+        const dataArray = new Uint8Array(analyser.frequencyBinCount)
+        const entry = { context: audioContext, analyser, source, dataArray }
+        connectedAudioElements.set(audioElement, entry)
+        return entry
       } catch (error) {
-        // Audio element might already be connected - try to use existing analyser
         console.warn('Audio element connection issue:', error)
-        // Try to find existing connection from another visualizer
-        const existing = Array.from(connectedAudioElements.values()).find(
-          conn => conn.context && conn.context.state !== 'closed'
-        )
-        if (existing) {
-          audioContextRef.current = existing.context
-          analyserRef.current = existing.analyser
-        } else {
-          return // Can't visualize without connection
-        }
+        return null
       }
     }
-
-    // Set up analyser if not already done
-    if (analyserRef.current) {
-      analyserRef.current.fftSize = 256
-    }
-    const bufferLength = analyserRef.current ? analyserRef.current.frequencyBinCount : 256
-    const dataArray = new Uint8Array(bufferLength)
-    dataArrayRef.current = dataArray
-    
-    // Update stored dataArray if we have a stored connection
-    const stored = connectedAudioElements.get(audioElement)
-    if (stored) {
-      stored.dataArray = dataArray
-    }
-
-    let isPlaying = false
 
     // Draw function - volume bar that goes up with volume
     const draw = () => {
@@ -178,43 +118,76 @@ function AudioVisualizer({ audioUrl }) {
         ctx.shadowBlur = 0
       }
 
-      if (isPlaying) {
+      if (isAnimatingRef.current) {
         animationFrameRef.current = requestAnimationFrame(draw)
       }
     }
 
-    // Start drawing when audio plays
-    const handlePlay = () => {
-      isPlaying = true
+    const startVisualization = (audioElement) => {
+      const entry = ensureConnection(audioElement)
+      if (!entry) return
+
+      if (activeAudioRef.current && activeAudioRef.current !== audioElement) {
+        stopVisualization(activeAudioRef.current, true)
+      }
+
+      activeAudioRef.current = audioElement
+      audioContextRef.current = entry.context
+      analyserRef.current = entry.analyser
+      dataArrayRef.current = entry.dataArray
+
       if (audioContextRef.current?.state === 'suspended') {
         audioContextRef.current.resume()
       }
-      draw()
+
+      if (!isAnimatingRef.current) {
+        isAnimatingRef.current = true
+        draw()
+      }
     }
 
-      // Stop drawing when audio pauses
-      const handlePause = () => {
-        isPlaying = false
-        if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current)
-        }
-        // Clear canvas
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.95)'
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
+    const stopVisualization = (audioElement, force = false) => {
+      if (!force && activeAudioRef.current !== audioElement) return
+      isAnimatingRef.current = false
+      activeAudioRef.current = null
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current)
+      }
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.95)'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+    }
+
+    const listeners = audioElements.map((audioElement) => {
+      const handlePlay = () => startVisualization(audioElement)
+      const handlePause = () => stopVisualization(audioElement)
+      const handleEnded = () => stopVisualization(audioElement)
+
+      audioElement.addEventListener('play', handlePlay)
+      audioElement.addEventListener('pause', handlePause)
+      audioElement.addEventListener('ended', handleEnded)
+
+      if (!audioElement.paused && !audioElement.ended) {
+        handlePlay()
       }
 
-    audioElement.addEventListener('play', handlePlay)
-    audioElement.addEventListener('pause', handlePause)
-    audioElement.addEventListener('ended', handlePause)
+      return { audioElement, handlePlay, handlePause, handleEnded }
+    })
 
-    // Initial draw
-    draw()
+    if (!isAnimatingRef.current) {
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.95)'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+    }
 
     // Cleanup
     return () => {
-      audioElement.removeEventListener('play', handlePlay)
-      audioElement.removeEventListener('pause', handlePause)
-      audioElement.removeEventListener('ended', handlePause)
+      listeners.forEach(({ audioElement, handlePlay, handlePause, handleEnded }) => {
+        audioElement.removeEventListener('play', handlePlay)
+        audioElement.removeEventListener('pause', handlePause)
+        audioElement.removeEventListener('ended', handleEnded)
+      })
+      if (activeAudioRef.current && !sidebar?.contains(activeAudioRef.current)) {
+        stopVisualization(activeAudioRef.current, true)
+      }
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current)
       }

@@ -28,5 +28,4 @@ dist-ssr
 .env.local
 .env.production
 
-# Server folder - exclude entirely
-server/
+venv/
